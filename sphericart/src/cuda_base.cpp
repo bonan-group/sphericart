@@ -84,7 +84,7 @@ void sphericart::cuda::spherical_harmonics_cuda_base(
     void* cuda_stream
 ) {
     int n_total = (l_max + 1) * (l_max + 1);
-    auto find_num_blocks = [](int x, int bdim) { return (x + bdim - 1) / bdim; };
+    auto find_num_blocks = [](int x, int bdim) { return x / bdim + (x % bdim != 0); };
 
     auto config = gpulite::LaunchConfig();
     config.gridDim = find_num_blocks(nedges, GRID_DIM_Y);
@@ -162,7 +162,7 @@ void sphericart::cuda::spherical_harmonics_backward_cuda_base(
     scalar_t* xyz_grad,
     void* cuda_stream
 ) {
-    auto find_num_blocks = [](int x, int bdim) { return (x + bdim - 1) / bdim; };
+    auto find_num_blocks = [](int x, int bdim) { return x / bdim + (x % bdim != 0); };
 
     int device;
     GPULITE_CUDART_CALL(cudaGetDevice(&device));
