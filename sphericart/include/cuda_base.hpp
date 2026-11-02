@@ -68,7 +68,8 @@ void spherical_harmonics_cuda_base(
     scalar_t* sph,
     scalar_t* dsph,
     scalar_t* ddsph,
-    void* cuda_stream = nullptr
+    void* cuda_stream = nullptr,
+    bool synchronize = true
 );
 
 template <typename scalar_t>
