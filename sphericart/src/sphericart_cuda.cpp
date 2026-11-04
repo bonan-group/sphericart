@@ -71,6 +71,37 @@ template <typename T> SphericalHarmonics<T>::~SphericalHarmonics() {
     */
 }
 
+template <typename T> void SphericalHarmonics<T>::release_device_resources() {
+    if (this->prefactors_cuda == nullptr) {
+        return;
+    }
+
+    int current_device;
+    GPULITE_CUDART_CALL(cudaGetDevice(&current_device));
+    if (this->bound_device < 0) {
+        throw std::runtime_error("sphericart CUDA calculator has no bound device");
+    }
+
+    const bool restore_device = current_device != this->bound_device;
+    if (restore_device) {
+        GPULITE_CUDART_CALL(cudaSetDevice(this->bound_device));
+    }
+    const cudaError_t free_status = gpulite::CUDART::instance().cudaFree(this->prefactors_cuda);
+    if (free_status == cudaSuccess) {
+        this->prefactors_cuda = nullptr;
+    }
+    cudaError_t restore_status = cudaSuccess;
+    if (restore_device) {
+        restore_status = gpulite::CUDART::instance().cudaSetDevice(current_device);
+    }
+    if (free_status != cudaSuccess) {
+        throw std::runtime_error(gpulite::details::cudartErrorString(free_status));
+    }
+    if (restore_status != cudaSuccess) {
+        throw std::runtime_error(gpulite::details::cudartErrorString(restore_status));
+    }
+}
+
 template <typename T>
 void SphericalHarmonics<T>::compute_internal(
     const T* xyz,
@@ -80,7 +111,8 @@ void SphericalHarmonics<T>::compute_internal(
     T* sph,
     T* dsph,
     T* ddsph,
-    void* cuda_stream
+    void* cuda_stream,
+    bool synchronize
 ) {
     if (n_samples == 0) {
         // nothing to compute; we return here because some libraries (e.g. torch)
@@ -120,6 +152,13 @@ void SphericalHarmonics<T>::compute_internal(
 
     GPULITE_CUDART_CALL(cudaGetDevice(&current_device));
 
+    if (this->bound_device >= 0 && this->bound_device != attributes.device) {
+        throw std::runtime_error(
+            "sphericart CUDA calculator device migration is unsupported; the calculator is bound "
+            "to its first device"
+        );
+    }
+
     if (current_device != attributes.device) {
         GPULITE_CUDART_CALL(cudaSetDevice(attributes.device));
     }
@@ -128,6 +167,7 @@ void SphericalHarmonics<T>::compute_internal(
         GPULITE_CUDART_CALL(
             cudaMalloc((void**)&this->prefactors_cuda, this->nprefactors * sizeof(T))
         );
+        this->bound_device = attributes.device;
 
         GPULITE_CUDART_CALL(cudaMemcpy(
             this->prefactors_cuda,
@@ -151,7 +191,8 @@ void SphericalHarmonics<T>::compute_internal(
         sph,
         dsph,
         ddsph,
-        cuda_stream
+        cuda_stream,
+        synchronize
     );
 
     if (current_device != attributes.device) {
@@ -161,7 +202,7 @@ void SphericalHarmonics<T>::compute_internal(
 template <typename T>
 void SphericalHarmonics<T>::compute(const T* xyz, const size_t n_samples, T* sph, void* cuda_stream) {
     SphericalHarmonics<T>::compute_internal(
-        xyz, n_samples, false, false, sph, nullptr, nullptr, cuda_stream
+        xyz, n_samples, false, false, sph, nullptr, nullptr, cuda_stream, true
     );
 }
 
@@ -170,7 +211,16 @@ void SphericalHarmonics<T>::compute_with_gradients(
     const T* xyz, const size_t n_samples, T* sph, T* dsph, void* cuda_stream
 ) {
     SphericalHarmonics<T>::compute_internal(
-        xyz, n_samples, true, false, sph, dsph, nullptr, cuda_stream
+        xyz, n_samples, true, false, sph, dsph, nullptr, cuda_stream, true
+    );
+}
+
+template <typename T>
+void SphericalHarmonics<T>::compute_with_gradients_async(
+    const T* xyz, const size_t n_samples, T* sph, T* dsph, void* cuda_stream
+) {
+    SphericalHarmonics<T>::compute_internal(
+        xyz, n_samples, true, false, sph, dsph, nullptr, cuda_stream, false
     );
 }
 
@@ -179,7 +229,7 @@ void SphericalHarmonics<T>::compute_with_hessians(
     const T* xyz, const size_t n_samples, T* sph, T* dsph, T* ddsph, void* cuda_stream
 ) {
     SphericalHarmonics<T>::compute_internal(
-        xyz, n_samples, true, true, sph, dsph, ddsph, cuda_stream
+        xyz, n_samples, true, true, sph, dsph, ddsph, cuda_stream, true
     );
 }
 

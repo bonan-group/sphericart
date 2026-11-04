@@ -81,10 +81,11 @@ void sphericart::cuda::spherical_harmonics_cuda_base(
     scalar_t* sph,
     scalar_t* dsph,
     scalar_t* ddsph,
-    void* cuda_stream
+    void* cuda_stream,
+    bool synchronize
 ) {
     int n_total = (l_max + 1) * (l_max + 1);
-    auto find_num_blocks = [](int x, int bdim) { return (x + bdim - 1) / bdim; };
+    auto find_num_blocks = [](int x, int bdim) { return x / bdim + (x % bdim != 0); };
 
     auto config = gpulite::LaunchConfig();
     config.gridDim = find_num_blocks(nedges, GRID_DIM_Y);
@@ -117,6 +118,9 @@ void sphericart::cuda::spherical_harmonics_cuda_base(
         dsph,
         ddsph
     );
+    if (synchronize) {
+        GPULITE_CUDART_CALL(cudaStreamSynchronize(config.stream));
+    }
 }
 
 template void sphericart::cuda::spherical_harmonics_cuda_base<float>(
@@ -133,7 +137,8 @@ template void sphericart::cuda::spherical_harmonics_cuda_base<float>(
     float* sph,
     float* dsph,
     float* ddsph,
-    void* cuda_stream
+    void* cuda_stream,
+    bool synchronize
 );
 
 template void sphericart::cuda::spherical_harmonics_cuda_base<double>(
@@ -150,7 +155,8 @@ template void sphericart::cuda::spherical_harmonics_cuda_base<double>(
     double* sph,
     double* dsph,
     double* ddsph,
-    void* cuda_stream
+    void* cuda_stream,
+    bool synchronize
 );
 
 template <typename scalar_t>
@@ -162,7 +168,7 @@ void sphericart::cuda::spherical_harmonics_backward_cuda_base(
     scalar_t* xyz_grad,
     void* cuda_stream
 ) {
-    auto find_num_blocks = [](int x, int bdim) { return (x + bdim - 1) / bdim; };
+    auto find_num_blocks = [](int x, int bdim) { return x / bdim + (x % bdim != 0); };
 
     int device;
     GPULITE_CUDART_CALL(cudaGetDevice(&device));

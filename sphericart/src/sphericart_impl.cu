@@ -76,7 +76,7 @@ __device__ inline void clear_buffers(
 */
 template <typename scalar_t>
 __device__ inline void write_buffers(
-    int edge_idx,
+    unsigned long long edge_idx,
     int nedges,
     scalar_t x,
     scalar_t y,
@@ -110,9 +110,13 @@ __device__ inline void write_buffers(
     bool normalize
 ) {
     if (edge_idx < nedges) {
+        const unsigned long long sample_offset =
+            static_cast<unsigned long long>(edge_idx) * n_total;
+        const unsigned long long gradient_offset = 3 * sample_offset;
+        const unsigned long long hessian_offset = 9 * sample_offset;
         for (int i = threadIdx.x; i < n_elements; i += blockDim.x) {
 
-            sph[edge_idx * n_total + offset + i] = buffer_sph[get_index(i)];
+            sph[sample_offset + offset + i] = buffer_sph[get_index(i)];
 
             if (requires_hessian) {
                 auto tmp_dx = buffer_dsph_x[get_index(i)];
@@ -161,25 +165,25 @@ __device__ inline void write_buffers(
                                           (ir * ir);
                 }
 
-                ddsph[edge_idx * 9 * n_total + 0 * 3 * n_total + 0 * n_total + offset + i] =
+                ddsph[hessian_offset + 0 * 3 * n_total + 0 * n_total + offset + i] =
                     tmp_dxdx;
-                ddsph[edge_idx * 9 * n_total + 0 * 3 * n_total + 1 * n_total + offset + i] =
+                ddsph[hessian_offset + 0 * 3 * n_total + 1 * n_total + offset + i] =
                     tmp_dxdy;
-                ddsph[edge_idx * 9 * n_total + 0 * 3 * n_total + 2 * n_total + offset + i] =
+                ddsph[hessian_offset + 0 * 3 * n_total + 2 * n_total + offset + i] =
                     tmp_dxdz;
 
-                ddsph[edge_idx * 9 * n_total + 1 * 3 * n_total + 0 * n_total + offset + i] =
+                ddsph[hessian_offset + 1 * 3 * n_total + 0 * n_total + offset + i] =
                     tmp_dydx;
-                ddsph[edge_idx * 9 * n_total + 1 * 3 * n_total + 1 * n_total + offset + i] =
+                ddsph[hessian_offset + 1 * 3 * n_total + 1 * n_total + offset + i] =
                     tmp_dydy;
-                ddsph[edge_idx * 9 * n_total + 1 * 3 * n_total + 2 * n_total + offset + i] =
+                ddsph[hessian_offset + 1 * 3 * n_total + 2 * n_total + offset + i] =
                     tmp_dydz;
 
-                ddsph[edge_idx * 9 * n_total + 2 * 3 * n_total + 0 * n_total + offset + i] =
+                ddsph[hessian_offset + 2 * 3 * n_total + 0 * n_total + offset + i] =
                     tmp_dzdx;
-                ddsph[edge_idx * 9 * n_total + 2 * 3 * n_total + 1 * n_total + offset + i] =
+                ddsph[hessian_offset + 2 * 3 * n_total + 1 * n_total + offset + i] =
                     tmp_dzdy;
-                ddsph[edge_idx * 9 * n_total + 2 * 3 * n_total + 2 * n_total + offset + i] =
+                ddsph[hessian_offset + 2 * 3 * n_total + 2 * n_total + offset + i] =
                     tmp_dzdz;
             }
 
@@ -197,9 +201,9 @@ __device__ inline void write_buffers(
                     tmp_dz = (tmp_dz - z * tmp) * ir;
                 }
 
-                dsph[edge_idx * 3 * n_total + 0 * n_total + offset + i] = tmp_dx;
-                dsph[edge_idx * 3 * n_total + 1 * n_total + offset + i] = tmp_dy;
-                dsph[edge_idx * 3 * n_total + 2 * n_total + offset + i] = tmp_dz;
+                dsph[gradient_offset + 0 * n_total + offset + i] = tmp_dx;
+                dsph[gradient_offset + 1 * n_total + offset + i] = tmp_dy;
+                dsph[gradient_offset + 2 * n_total + offset + i] = tmp_dz;
             }
         }
     }
@@ -289,7 +293,8 @@ __global__ void spherical_harmonics_kernel(
         offset += blockDim.y * nl * sizeof(scalar_t);
     }
 
-    int edge_idx = blockIdx.x * blockDim.y + threadIdx.y;
+    const unsigned long long edge_idx =
+        static_cast<unsigned long long>(blockIdx.x) * blockDim.y + threadIdx.y;
 
     scalar_t x = 0.0;
     scalar_t y = 0.0;
@@ -307,9 +312,11 @@ __global__ void spherical_harmonics_kernel(
     __syncthreads();
 
     if (edge_idx < nedges) {
-        x = xyz[edge_idx * 3 + 0];
-        y = xyz[edge_idx * 3 + 1];
-        z = xyz[edge_idx * 3 + 2];
+        const unsigned long long coordinate_offset =
+            static_cast<unsigned long long>(edge_idx) * 3;
+        x = xyz[coordinate_offset + 0];
+        y = xyz[coordinate_offset + 1];
+        z = xyz[coordinate_offset + 2];
 
         x2 = x * x;
         y2 = y * y;
@@ -657,19 +664,23 @@ __global__ void backward_kernel(
     const scalar_t* dsph, const scalar_t* sph_grad, int nedges, int n_total, scalar_t* xyz_grad
 ) {
 
-    int edge_idx = blockIdx.x * blockDim.y + threadIdx.y;
+    const unsigned long long edge_idx =
+        static_cast<unsigned long long>(blockIdx.x) * blockDim.y + threadIdx.y;
 
     int spatial = blockIdx.y;
 
     scalar_t sum = 0.0;
 
     if (edge_idx < nedges) {
+        const unsigned long long sample_offset =
+            static_cast<unsigned long long>(edge_idx) * n_total;
+        const unsigned long long gradient_offset = 3 * sample_offset;
         // for (int j = threadIdx.x; j < sph_grad.size(1); j += blockDim.x) {
         for (int j = threadIdx.x; j < n_total; j += blockDim.x) {
 
             // sum += dsph[edge_idx][spatial][j] * sph_grad[edge_idx][j];
-            sum += dsph[edge_idx * 3 * n_total + spatial * n_total + j] *
-                   sph_grad[edge_idx * n_total + j];
+            sum += dsph[gradient_offset + spatial * n_total + j] *
+                   sph_grad[sample_offset + j];
         }
     }
 
@@ -683,7 +694,9 @@ __global__ void backward_kernel(
     if (edge_idx < nedges) {
         if (threadIdx.x == 0) {
             // xyz_grad[sample_idx][spatial] = sum;
-            xyz_grad[edge_idx * 3 + spatial] = sum;
+            const unsigned long long coordinate_offset =
+                static_cast<unsigned long long>(edge_idx) * 3;
+            xyz_grad[coordinate_offset + spatial] = sum;
         }
     }
 }

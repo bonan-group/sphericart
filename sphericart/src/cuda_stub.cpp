@@ -17,7 +17,8 @@ void sphericart::cuda::spherical_harmonics_cuda_base(
     scalar_t* /*sph*/,
     scalar_t* /*dsph*/,
     scalar_t* /*ddsph*/,
-    void* /*cuda_stream*/
+    void* /*cuda_stream*/,
+    bool /*synchronize*/
 ) {
 
     throw std::runtime_error("sphericart was not compiled with CUDA support");
@@ -37,7 +38,8 @@ template void sphericart::cuda::spherical_harmonics_cuda_base<double>(
     double* sph,
     double* dsph,
     double* ddsph,
-    void* cuda_stream
+    void* cuda_stream,
+    bool synchronize
 );
 
 template void sphericart::cuda::spherical_harmonics_cuda_base<float>(
@@ -54,7 +56,8 @@ template void sphericart::cuda::spherical_harmonics_cuda_base<float>(
     float* sph,
     float* dsph,
     float* ddsph,
-    void* cuda_stream
+    void* cuda_stream,
+    bool synchronize
 );
 
 template <typename scalar_t>

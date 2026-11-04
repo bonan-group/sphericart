@@ -29,6 +29,11 @@ namespace cuda {
  * It handles initialization of the prefactors upon initialization and it
  * stores the buffers that are necessary to compute the spherical harmonics
  * efficiently.
+ *
+ * A CUDA calculator is bound to the device used by its first non-empty
+ * computation. The caller may explicitly release its lazily allocated device
+ * resources with `release_device_resources`, but the calculator cannot migrate
+ * to another device afterwards.
  */
 template <typename T> class SphericalHarmonics {
   public:
@@ -103,6 +108,19 @@ template <typename T> class SphericalHarmonics {
         const T* xyz, const size_t n_samples, T* sph, T* dsph, void* cuda_stream = nullptr
     );
 
+    /** Enqueues spherical harmonics and first derivatives without synchronizing.
+     * The caller owns stream synchronization and must keep all buffers alive
+     * until the work completes.
+     */
+    void compute_with_gradients_async(
+        const T* xyz, const size_t n_samples, T* sph, T* dsph, void* cuda_stream = nullptr
+    );
+
+    /** Releases lazily allocated device resources. The operation is idempotent.
+     * The caller must ensure that all work using this calculator has completed.
+     */
+    void release_device_resources();
+
     /** Computes the spherical harmonics and their first and second derivatives
      *  for one or more 3D points, using pre-allocated device-side pointers
      *
@@ -149,6 +167,7 @@ template <typename T> class SphericalHarmonics {
     bool normalized;              // should we normalize the input vectors?
     T* prefactors_cpu = nullptr;  // host prefactors buffer
     T* prefactors_cuda = nullptr; // storage space for prefactors
+    int bound_device = -1;
     int device_count = 0;         // number of visible GPU devices
     int64_t CUDA_GRID_DIM_X_ = 8;
     int64_t CUDA_GRID_DIM_Y_ = 8;
@@ -164,7 +183,8 @@ template <typename T> class SphericalHarmonics {
         T* sph,
         T* dsph,
         T* ddsph,
-        void* cuda_stream
+        void* cuda_stream,
+        bool synchronize
     );
     /* @endcond */
 };

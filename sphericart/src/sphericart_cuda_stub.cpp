@@ -19,7 +19,8 @@ void SphericalHarmonics<T>::compute_internal(
     T* /*sph*/,
     T* /*dsph*/,
     T* /*ddsph*/,
-    void* /*cuda_stream*/
+    void* /*cuda_stream*/,
+    bool /*synchronize*/
 ) {
     throw std::runtime_error("sphericart was not compiled with CUDA support");
 }
@@ -37,6 +38,15 @@ void SphericalHarmonics<T>::compute_with_gradients(
 ) {
     throw std::runtime_error("sphericart was not compiled with CUDA support");
 }
+
+template <typename T>
+void SphericalHarmonics<T>::compute_with_gradients_async(
+    const T* /*xyz*/, const size_t /*n_samples*/, T* /*sph*/, T* /*dsph*/, void* /*cuda_stream*/
+) {
+    throw std::runtime_error("sphericart was not compiled with CUDA support");
+}
+
+template <typename T> void SphericalHarmonics<T>::release_device_resources() {}
 
 template <typename T>
 void SphericalHarmonics<T>::compute_with_hessians(
