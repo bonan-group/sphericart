@@ -147,8 +147,8 @@ include(FetchContent)
 
 FetchContent_Declare(
     gpulite
-    GIT_REPOSITORY https://github.com/metatensor/gpu-lite.git
-    GIT_TAG ceb0934e2294b680ebce37242b2e4f26921152e6 # tag 'mts-v1.2.0'
+    GIT_REPOSITORY https://github.com/bonan-group/gpu-lite.git
+    GIT_TAG 2cd4213705efd5078874b761feb58e7ff263bef3 # bonan-group/gpu-lite CUDA runtime fix
     EXCLUDE_FROM_ALL
 )
 if (NOT SPHERICART_ENABLE_HIP)
