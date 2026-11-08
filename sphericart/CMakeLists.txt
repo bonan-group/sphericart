@@ -148,7 +148,7 @@ include(FetchContent)
 FetchContent_Declare(
     gpulite
     GIT_REPOSITORY https://github.com/bonan-group/gpu-lite.git
-    GIT_TAG 2cd4213705efd5078874b761feb58e7ff263bef3 # bonan-group/gpu-lite CUDA runtime fix
+    GIT_TAG 4826cc76f7a66075be101aa7502a457ef755b13c # CUDA 12 function-reference compatibility
     EXCLUDE_FROM_ALL
 )
 if (NOT SPHERICART_ENABLE_HIP)
