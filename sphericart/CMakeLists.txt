@@ -148,13 +148,19 @@ include(FetchContent)
 FetchContent_Declare(
     gpulite
     GIT_REPOSITORY https://github.com/bonan-group/gpu-lite.git
-    GIT_TAG 4826cc76f7a66075be101aa7502a457ef755b13c # CUDA 12 function-reference compatibility
+    GIT_TAG 3fcc6b888f9d8f691d18af01801732ef4222a161 # merged CUDA runtime declaration compatibility fix
     EXCLUDE_FROM_ALL
 )
 if (NOT SPHERICART_ENABLE_HIP)
     # gpu-lite is the dynamic CUDA loader used by the CUDA backend; the HIP
     # backend resolves the HIP runtime and hipRTC on its own.
     FetchContent_MakeAvailable(gpulite)
+    if (TARGET gpulite_header_compile AND NOT SPHERICART_ENABLE_SYCL)
+        # gpu-lite registers this regression test with CTest, but the fetched
+        # directory is excluded from the default build. Build the executable
+        # whenever it is provided, including its optional CUDA-header checks.
+        set_target_properties(gpulite_header_compile PROPERTIES EXCLUDE_FROM_ALL FALSE)
+    endif()
 endif()
 
 # Find SYCL
