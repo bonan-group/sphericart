@@ -148,7 +148,7 @@ include(FetchContent)
 FetchContent_Declare(
     gpulite
     GIT_REPOSITORY https://github.com/bonan-group/gpu-lite.git
-    GIT_TAG 6104f31ac9baf23a79f2e1428fdb0107032aaec2 # CUDA runtime declaration compatibility
+    GIT_TAG 3fcc6b888f9d8f691d18af01801732ef4222a161 # merged CUDA runtime declaration compatibility fix
     EXCLUDE_FROM_ALL
 )
 if (NOT SPHERICART_ENABLE_HIP)
