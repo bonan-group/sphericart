@@ -110,8 +110,7 @@ __device__ inline void write_buffers(
     bool normalize
 ) {
     if (edge_idx < nedges) {
-        const unsigned long long sample_offset =
-            static_cast<unsigned long long>(edge_idx) * n_total;
+        const unsigned long long sample_offset = static_cast<unsigned long long>(edge_idx) * n_total;
         const unsigned long long gradient_offset = 3 * sample_offset;
         const unsigned long long hessian_offset = 9 * sample_offset;
         for (int i = threadIdx.x; i < n_elements; i += blockDim.x) {
@@ -165,26 +164,17 @@ __device__ inline void write_buffers(
                                           (ir * ir);
                 }
 
-                ddsph[hessian_offset + 0 * 3 * n_total + 0 * n_total + offset + i] =
-                    tmp_dxdx;
-                ddsph[hessian_offset + 0 * 3 * n_total + 1 * n_total + offset + i] =
-                    tmp_dxdy;
-                ddsph[hessian_offset + 0 * 3 * n_total + 2 * n_total + offset + i] =
-                    tmp_dxdz;
+                ddsph[hessian_offset + 0 * 3 * n_total + 0 * n_total + offset + i] = tmp_dxdx;
+                ddsph[hessian_offset + 0 * 3 * n_total + 1 * n_total + offset + i] = tmp_dxdy;
+                ddsph[hessian_offset + 0 * 3 * n_total + 2 * n_total + offset + i] = tmp_dxdz;
 
-                ddsph[hessian_offset + 1 * 3 * n_total + 0 * n_total + offset + i] =
-                    tmp_dydx;
-                ddsph[hessian_offset + 1 * 3 * n_total + 1 * n_total + offset + i] =
-                    tmp_dydy;
-                ddsph[hessian_offset + 1 * 3 * n_total + 2 * n_total + offset + i] =
-                    tmp_dydz;
+                ddsph[hessian_offset + 1 * 3 * n_total + 0 * n_total + offset + i] = tmp_dydx;
+                ddsph[hessian_offset + 1 * 3 * n_total + 1 * n_total + offset + i] = tmp_dydy;
+                ddsph[hessian_offset + 1 * 3 * n_total + 2 * n_total + offset + i] = tmp_dydz;
 
-                ddsph[hessian_offset + 2 * 3 * n_total + 0 * n_total + offset + i] =
-                    tmp_dzdx;
-                ddsph[hessian_offset + 2 * 3 * n_total + 1 * n_total + offset + i] =
-                    tmp_dzdy;
-                ddsph[hessian_offset + 2 * 3 * n_total + 2 * n_total + offset + i] =
-                    tmp_dzdz;
+                ddsph[hessian_offset + 2 * 3 * n_total + 0 * n_total + offset + i] = tmp_dzdx;
+                ddsph[hessian_offset + 2 * 3 * n_total + 1 * n_total + offset + i] = tmp_dzdy;
+                ddsph[hessian_offset + 2 * 3 * n_total + 2 * n_total + offset + i] = tmp_dzdz;
             }
 
             if (requires_grad) {
@@ -312,8 +302,7 @@ __global__ void spherical_harmonics_kernel(
     __syncthreads();
 
     if (edge_idx < nedges) {
-        const unsigned long long coordinate_offset =
-            static_cast<unsigned long long>(edge_idx) * 3;
+        const unsigned long long coordinate_offset = static_cast<unsigned long long>(edge_idx) * 3;
         x = xyz[coordinate_offset + 0];
         y = xyz[coordinate_offset + 1];
         z = xyz[coordinate_offset + 2];
@@ -672,15 +661,13 @@ __global__ void backward_kernel(
     scalar_t sum = 0.0;
 
     if (edge_idx < nedges) {
-        const unsigned long long sample_offset =
-            static_cast<unsigned long long>(edge_idx) * n_total;
+        const unsigned long long sample_offset = static_cast<unsigned long long>(edge_idx) * n_total;
         const unsigned long long gradient_offset = 3 * sample_offset;
         // for (int j = threadIdx.x; j < sph_grad.size(1); j += blockDim.x) {
         for (int j = threadIdx.x; j < n_total; j += blockDim.x) {
 
             // sum += dsph[edge_idx][spatial][j] * sph_grad[edge_idx][j];
-            sum += dsph[gradient_offset + spatial * n_total + j] *
-                   sph_grad[sample_offset + j];
+            sum += dsph[gradient_offset + spatial * n_total + j] * sph_grad[sample_offset + j];
         }
     }
 
