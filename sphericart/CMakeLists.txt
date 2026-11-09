@@ -155,6 +155,12 @@ if (NOT SPHERICART_ENABLE_HIP)
     # gpu-lite is the dynamic CUDA loader used by the CUDA backend; the HIP
     # backend resolves the HIP runtime and hipRTC on its own.
     FetchContent_MakeAvailable(gpulite)
+    if (TARGET gpulite_header_compile)
+        # gpu-lite registers this regression test with CTest, but the fetched
+        # directory is excluded from the default build. Build the executable
+        # whenever it is provided, including its optional CUDA-header checks.
+        set_target_properties(gpulite_header_compile PROPERTIES EXCLUDE_FROM_ALL FALSE)
+    endif()
 endif()
 
 # Find SYCL
